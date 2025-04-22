@@ -1,10 +1,6 @@
 ﻿using FluentResults;
 using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,6 +16,14 @@ namespace Clear
     public interface IRequestHandler<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
+        /// <summary>
+        /// Handles the specified command and returns the result of the operation.
+        /// </summary>
+        /// <param name="command">The command to be processed. Cannot be <see langword="null"/>.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests. Passing a canceled token will result in the operation being
+        /// canceled.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a <see
+        /// cref="Result{TResponse}"/> representing the outcome of the operation.</returns>
         Task<Result<TResponse>> Handle(TRequest command, CancellationToken cancellationToken);
     }
 
@@ -30,6 +34,17 @@ namespace Clear
     public interface IFeatureAction<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
+        /// <summary>
+        /// Executes the specified command by validating it and then passing it to the handler for processing.
+        /// </summary>
+        /// <remarks>If a validator is provided, the command is validated before being passed to the
+        /// handler.  If validation fails, the method returns a failure result containing the validation errors.
+        /// Otherwise, the command is processed by the handler, and the result of the handler's execution is
+        /// returned.</remarks>
+        /// <param name="command">The command to be executed. Must conform to the expected structure and requirements of the handler.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests, which can be used to cancel the operation.</param>
+        /// <returns>A <see cref="Result{TResponse}"/> containing the result of the command execution.  If validation fails, the
+        /// result will contain the validation error messages.</returns>
         Task<Result<TResponse>> Execute(TRequest command, CancellationToken cancellationToken);
     }
 
@@ -47,6 +62,17 @@ namespace Clear
             _validator = validator;
         }
 
+        /// <summary>
+        /// Executes the specified command by validating it and then passing it to the handler for processing.
+        /// </summary>
+        /// <remarks>If a validator is provided, the command is validated before being passed to the
+        /// handler.  If validation fails, the method returns a failure result containing the validation errors.
+        /// Otherwise, the command is processed by the handler, and the result of the handler's execution is
+        /// returned.</remarks>
+        /// <param name="command">The command to be executed. Must conform to the expected structure and requirements of the handler.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests, which can be used to cancel the operation.</param>
+        /// <returns>A <see cref="Result{TResponse}"/> containing the result of the command execution.  If validation fails, the
+        /// result will contain the validation error messages.</returns>
         public async Task<Result<TResponse>> Execute(TRequest command, CancellationToken cancellationToken)
         {
             if (_validator != null)
@@ -70,54 +96,6 @@ namespace Clear
             IValidator<TRequest> validator = null)
             : base(handler, validator)
         {
-        }
-    }
-
-    public static class ServiceCollectionExtensions
-    {
-        public static IServiceCollection AddFeatureActions(this IServiceCollection services, Assembly assembly)
-        {
-            List<Type> featureActionTypes = GetFeatureActionTypes(assembly);
-
-            foreach (var actionType in featureActionTypes)
-            {
-                var requestInterface = actionType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
-                if (requestInterface == null) continue;
-
-                var responseType = requestInterface.GetGenericArguments()[0];
-                var handlerType = typeof(IRequestHandler<,>).MakeGenericType(actionType, responseType);
-                var validatorType = typeof(IValidator<>).MakeGenericType(actionType);
-                var featureExecutorType = typeof(FeatureAction<,>).MakeGenericType(actionType, responseType);
-                var featureExecutorInterface = typeof(IFeatureAction<,>).MakeGenericType(actionType, responseType);
-
-                // Register the request handler
-                var handlerImplementation = assembly.ExportedTypes.FirstOrDefault(t => handlerType.IsAssignableFrom(t));
-                if (handlerImplementation != null)
-                {
-                    services.AddScoped(handlerType, handlerImplementation);
-                }
-
-                // Register the validator if available
-                var validatorImplementation = assembly.ExportedTypes.FirstOrDefault(t => validatorType.IsAssignableFrom(t));
-                if (validatorImplementation != null)
-                {
-                    services.AddScoped(validatorType, validatorImplementation);
-                }
-
-                // Register the feature action
-                services.AddScoped(featureExecutorInterface, featureExecutorType);
-            }
-
-            return services;
-        }
-
-        private static List<Type> GetFeatureActionTypes(Assembly assembly)
-        {
-            var types = assembly.ExportedTypes
-                .Where(t => t.IsClass && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
-                .ToList();
-
-            return types ?? new List<Type>();
         }
     }
 }
