@@ -23,9 +23,9 @@ namespace Clear
         /// <returns>The updated <see cref="IServiceCollection"/> with the registered feature actions, handlers, and validators.</returns>
         public static IServiceCollection AddFeatureActions(this IServiceCollection services, Assembly assembly = null)
         {
-            List<Type> featureActionTypes = GetFeatureActionTypes(assembly);
+            var allTypes = GetAllTypes(assembly);
 
-            foreach (var actionType in featureActionTypes)
+            foreach (var actionType in GetFeatureActionTypes(allTypes))
             {
                 var requestInterface = actionType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
                 if (requestInterface == null) continue;
@@ -37,14 +37,14 @@ namespace Clear
                 var featureExecutorInterface = typeof(IFeatureAction<,>).MakeGenericType(actionType, responseType);
 
                 // Register the request handler
-                var handlerImplementation = assembly.ExportedTypes.FirstOrDefault(t => handlerType.IsAssignableFrom(t));
+                var handlerImplementation = SearchByType(allTypes, handlerType).FirstOrDefault();
                 if (handlerImplementation != null)
                 {
                     services.AddScoped(handlerType, handlerImplementation);
                 }
 
                 // Register the validator if available
-                var validatorImplementation = assembly.ExportedTypes.FirstOrDefault(t => validatorType.IsAssignableFrom(t));
+                var validatorImplementation = SearchByType(allTypes, validatorType).FirstOrDefault();
                 if (validatorImplementation != null)
                 {
                     services.AddScoped(validatorType, validatorImplementation);
@@ -57,15 +57,53 @@ namespace Clear
             return services;
         }
 
-        private static List<Type> GetFeatureActionTypes(Assembly assembly)
+        public static IServiceCollection AddNotificationPublishers(this IServiceCollection services, Assembly assembly = null)
         {
-            var exportedTypes = assembly == null
+            var allTypes = GetAllTypes(assembly);
+
+            foreach (var notificationType in GetNotificationTypes(allTypes))
+            {
+                var handlerType = typeof(INotificationHandler<>).MakeGenericType(notificationType);
+                var notificationPublisherType = typeof(NotificationPublisher<>).MakeGenericType(notificationType);
+                var notificationPublisherInterface = typeof(INotificationPublisher<>).MakeGenericType(notificationType);
+
+                // Register the request handlers
+                foreach (var handlerImplementation in SearchByType(allTypes, handlerType))
+                {
+                    services.AddScoped(handlerType, handlerImplementation);
+                }
+
+                // Register the feature action
+                services.AddScoped(notificationPublisherInterface, notificationPublisherType);
+            }
+
+            return services;
+        }
+
+        private static IEnumerable<Type> GetAllTypes(Assembly assembly)
+        {
+            return assembly == null
                 ? AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.ExportedTypes)
                 : assembly.ExportedTypes;
+        }
 
+        private static IEnumerable<Type> GetFeatureActionTypes(IEnumerable<Type> exportedTypes)
+        {
             return exportedTypes
                 .Where(t => t.IsClass && !t.IsAbstract && t.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
-                .ToList() ?? new List<Type>();
+                ?? new List<Type>();
+        }
+
+        private static IEnumerable<Type> GetNotificationTypes(IEnumerable<Type> exportedTypes)
+        {
+            return exportedTypes
+                .Where(t => t.IsClass && !t.IsAbstract && t.GetInterfaces().Any(i => i == typeof(INotification)))
+                ?? new List<Type>();
+        }
+
+        private static IEnumerable<Type> SearchByType(IEnumerable<Type> exportedTypes, Type type)
+        {
+            return exportedTypes.Where(t => type.IsAssignableFrom(t));
         }
     }
 }

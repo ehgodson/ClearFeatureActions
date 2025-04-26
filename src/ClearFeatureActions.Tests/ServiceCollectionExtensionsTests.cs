@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace Clear.Tests;
 
-#region objects
+#region feature action objects
 
 public class TestRequest : IRequest<bool> { }
 public class TestRequestHandler : IRequestHandler<TestRequest, bool>
@@ -28,6 +28,45 @@ public class AnotherTestRequestHandler : IRequestHandler<AnotherTestRequest, str
 
 #endregion
 
+#region notification objects
+
+public class TestNotification : INotification
+{
+    public string Message { get; set; } = string.Empty;
+}
+
+public class TestNotificationHandler1 : INotificationHandler<TestNotification>
+{
+    public bool SupportsConcurrentExecution => true;
+
+    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+public class TestNotificationHandler2 : INotificationHandler<TestNotification>
+{
+    public bool SupportsConcurrentExecution => true;
+
+    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+public class TestNotificationHandler3 : INotificationHandler<TestNotification>
+{
+    public bool SupportsConcurrentExecution => false;
+
+    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+}
+
+#endregion
+
 public class ServiceCollectionExtensionsTests
 {
     [Fact]
@@ -35,10 +74,9 @@ public class ServiceCollectionExtensionsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var assembly = Assembly.GetExecutingAssembly();
 
         // Act
-        services.AddFeatureActions(assembly);
+        services.AddFeatureActions(Assembly.GetExecutingAssembly());
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -69,5 +107,45 @@ public class ServiceCollectionExtensionsTests
 
         Assert.NotNull(serviceProvider.GetService<IRequestHandler<AnotherTestRequest, string>>());
         Assert.NotNull(serviceProvider.GetService<IFeatureAction<AnotherTestRequest, string>>());
+    }
+
+    [Fact]
+    public void AddNotificationPublishers_ShouldRegisterServices_WithAssembly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddNotificationPublishers(Assembly.GetExecutingAssembly());
+
+        // Assert
+        var serviceProvider = services.BuildServiceProvider();
+
+        Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
+
+        // Assert that there are exactly 2 implementations of INotificationHandler<TestNotification>
+        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
+        Assert.Equal(3, notificationHandlers.Count());
+    }
+
+    [Fact]
+    public void AddNotificationPublishers_ShouldRegisterServices_WithoutAssembly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddNotificationPublishers();
+
+        // Assert
+        var serviceProvider = services.BuildServiceProvider();
+
+        Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
+
+        // Assert that there are exactly 2 implementations of INotificationHandler<TestNotification>
+        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
+        Assert.Equal(3, notificationHandlers.Count());
     }
 }
