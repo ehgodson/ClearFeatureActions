@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Clear
+namespace Clear.FeatureActions
 {
     public static class ServiceCollectionExtensions
     {
@@ -25,36 +25,80 @@ namespace Clear
         {
             var allTypes = GetAllTypes(assembly);
 
-            foreach (var actionType in GetFeatureActionTypes(allTypes))
+            var featureActionTypes = GetFeatureActionTypes(allTypes);
+
+            foreach (var actionType in featureActionTypes)
             {
-                var requestInterface = actionType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
-                if (requestInterface == null) continue;
+                var requestInterface = actionType.GetInterfaces()
+                    .FirstOrDefault(i => i == typeof(IRequest));
 
-                var responseType = requestInterface.GetGenericArguments()[0];
-                var handlerType = typeof(IRequestHandler<,>).MakeGenericType(actionType, responseType);
-                var validatorType = typeof(IValidator<>).MakeGenericType(actionType);
-                var featureExecutorType = typeof(FeatureAction<,>).MakeGenericType(actionType, responseType);
-                var featureExecutorInterface = typeof(IFeatureAction<,>).MakeGenericType(actionType, responseType);
-
-                // Register the request handler
-                var handlerImplementation = SearchByType(allTypes, handlerType).FirstOrDefault();
-                if (handlerImplementation != null)
+                if (requestInterface == null)
                 {
-                    services.AddScoped(handlerType, handlerImplementation);
+                    AddWithResponse(services, actionType, allTypes);
                 }
-
-                // Register the validator if available
-                var validatorImplementation = SearchByType(allTypes, validatorType).FirstOrDefault();
-                if (validatorImplementation != null)
+                else
                 {
-                    services.AddScoped(validatorType, validatorImplementation);
+                    AddWithNoResponse(services, actionType, allTypes);
                 }
-
-                // Register the feature action
-                services.AddScoped(featureExecutorInterface, featureExecutorType);
             }
 
             return services;
+        }
+
+        private static void AddWithResponse(IServiceCollection services, Type actionType, IEnumerable<Type> allTypes)
+        {
+            var requestInterface = actionType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+            if (requestInterface == null) return;
+
+            // Handle IRequest<TResponse>
+            var responseType = requestInterface.GetGenericArguments()[0];
+            var handlerType = typeof(IRequestHandler<,>).MakeGenericType(actionType, responseType);
+            var validatorType = typeof(IValidator<>).MakeGenericType(actionType);
+            var featureExecutorType = typeof(FeatureAction<,>).MakeGenericType(actionType, responseType);
+            var featureExecutorInterface = typeof(IFeatureAction<,>).MakeGenericType(actionType, responseType);
+
+            // Register the request handler
+            var handlerImplementation = SearchByType(allTypes, handlerType).FirstOrDefault();
+            if (handlerImplementation != null)
+            {
+                services.AddScoped(handlerType, handlerImplementation);
+            }
+
+            // Register the validator if available
+            var validatorImplementation = SearchByType(allTypes, validatorType).FirstOrDefault();
+            if (validatorImplementation != null)
+            {
+                services.AddScoped(validatorType, validatorImplementation);
+            }
+
+            // Register the feature action
+            services.AddScoped(featureExecutorInterface, featureExecutorType);
+        }
+
+        private static void AddWithNoResponse(IServiceCollection services, Type actionType, IEnumerable<Type> allTypes)
+        {
+            // Handle IRequest (without TResponse)
+            var handlerType = typeof(IRequestHandler<>).MakeGenericType(actionType);
+            var validatorType = typeof(IValidator<>).MakeGenericType(actionType);
+            var featureExecutorType = typeof(FeatureAction<>).MakeGenericType(actionType);
+            var featureExecutorInterface = typeof(IFeatureAction<>).MakeGenericType(actionType);
+
+            // Register the request handler
+            var handlerImplementation = SearchByType(allTypes, handlerType).FirstOrDefault();
+            if (handlerImplementation != null)
+            {
+                services.AddScoped(handlerType, handlerImplementation);
+            }
+
+            // Register the validator if available
+            var validatorImplementation = SearchByType(allTypes, validatorType).FirstOrDefault();
+            if (validatorImplementation != null)
+            {
+                services.AddScoped(validatorType, validatorImplementation);
+            }
+
+            // Register the feature action
+            services.AddScoped(featureExecutorInterface, featureExecutorType);
         }
 
         public static IServiceCollection AddNotificationPublishers(this IServiceCollection services, Assembly assembly = null)

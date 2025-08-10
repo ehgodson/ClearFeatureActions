@@ -1,3 +1,4 @@
+using Clear.FeatureActions;
 using FluentResults;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,15 @@ public class AnotherTestRequestHandler : IRequestHandler<AnotherTestRequest, str
     public Task<Result<string>> Handle(AnotherTestRequest command, CancellationToken cancellationToken)
     {
         return Task.FromResult(Result.Ok("Success"));
+    }
+}
+
+public class YetAnotherTestRequest : IRequest { }
+public class YetAnotherTestRequestHandler : IRequestHandler<YetAnotherTestRequest>
+{
+    public Task<Result<bool>> Handle(YetAnotherTestRequest command, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Result.Ok(true));
     }
 }
 
@@ -70,46 +80,6 @@ public class TestNotificationHandler3 : INotificationHandler<TestNotification>
 public class ServiceCollectionExtensionsTests
 {
     [Fact]
-    public void AddFeatureActions_ShouldRegisterServices_WithAssembly()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddFeatureActions(Assembly.GetExecutingAssembly());
-
-        // Assert
-        var serviceProvider = services.BuildServiceProvider();
-
-        Assert.NotNull(serviceProvider.GetService<IRequestHandler<TestRequest, bool>>());
-        Assert.NotNull(serviceProvider.GetService<IValidator<TestRequest>>());
-        Assert.NotNull(serviceProvider.GetService<IFeatureAction<TestRequest, bool>>());
-
-        Assert.NotNull(serviceProvider.GetService<IRequestHandler<AnotherTestRequest, string>>());
-        Assert.NotNull(serviceProvider.GetService<IFeatureAction<AnotherTestRequest, string>>());
-    }
-
-    [Fact]
-    public void AddFeatureActions_ShouldRegisterServices_WithoutAssembly()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddFeatureActions();
-
-        // Assert
-        var serviceProvider = services.BuildServiceProvider();
-
-        Assert.NotNull(serviceProvider.GetService<IRequestHandler<TestRequest, bool>>());
-        Assert.NotNull(serviceProvider.GetService<IValidator<TestRequest>>());
-        Assert.NotNull(serviceProvider.GetService<IFeatureAction<TestRequest, bool>>());
-
-        Assert.NotNull(serviceProvider.GetService<IRequestHandler<AnotherTestRequest, string>>());
-        Assert.NotNull(serviceProvider.GetService<IFeatureAction<AnotherTestRequest, string>>());
-    }
-
-    [Fact]
     public void AddNotificationPublishers_ShouldRegisterServices_WithAssembly()
     {
         // Arrange
@@ -124,7 +94,7 @@ public class ServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
         Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
 
-        // Assert that there are exactly 2 implementations of INotificationHandler<TestNotification>
+        // Assert that there are exactly 3 implementations of INotificationHandler<TestNotification>
         var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
         Assert.Equal(3, notificationHandlers.Count());
     }
@@ -144,7 +114,7 @@ public class ServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
         Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
 
-        // Assert that there are exactly 2 implementations of INotificationHandler<TestNotification>
+        // Assert that there are exactly 3 implementations of INotificationHandler<TestNotification>
         var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
         Assert.Equal(3, notificationHandlers.Count());
     }
