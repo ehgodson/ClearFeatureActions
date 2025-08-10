@@ -3,10 +3,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Clear
+namespace Clear.FeatureActions
 {
     public interface INotification
+    { }
+
+    public interface INotification<out T> : INotification
     {
+        T Data { get; }
     }
 
     public interface INotificationHandler<in T> where T : INotification

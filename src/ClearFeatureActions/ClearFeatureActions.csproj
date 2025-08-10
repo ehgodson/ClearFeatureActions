@@ -1,54 +1,55 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<RootNamespace>Clear.FeatureActions</RootNamespace>
 
-	  <Version>1.1.0</Version>
-	  <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
-	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<Version>1.2.0</Version>
+		<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 
-	  <Description>
-		  This implementation demonstrates feature actions that encapsulate a request and a process flow. 
-		  In this case, an action serves as a subset of a specific feature. Each action consists of three 
-		  main components: a request, a handler, and a validator. The feature action coordinates these 
-		  components to ensure seamless functionality.
+		<Description>
+			This implementation demonstrates feature actions that encapsulate a request and a process flow.
+			In this case, an action serves as a subset of a specific feature. Each action consists of three
+			main components: a request, a handler, and a validator. The feature action coordinates these
+			components to ensure seamless functionality.
 
-		  - The **handler** is responsible for executing the requests.
-		  - The **validator** ensures that all validation checks are completed before any execution is attempted.
+			- The **handler** is responsible for executing the requests.
+			- The **validator** ensures that all validation checks are completed before any execution is attempted.
 
-		  This approach guarantees that the workflow is robust and efficient. The project relies 
-		  on **FluentValidation** for validation logic and **FluentResults** for managing execution 
-		  results. And that's essentially how it all comes together!
-	  </Description>
-	  <PackageTags>feature actions, reguest, handler, validation, cqs, cqrs</PackageTags>
+			This approach guarantees that the workflow is robust and efficient. The project relies
+			on **FluentValidation** for validation logic and **FluentResults** for managing execution
+			results. And that's essentially how it all comes together!
+		</Description>
+		<PackageTags>feature actions, reguest, handler, validation, cqs, cqrs</PackageTags>
 
-	  <Authors>Godwin Ehichoya</Authors>
-	  <Company>Clearwox Systems</Company>
-	  <Copyright>Copyright 2025</Copyright>
-	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
+		<Authors>Godwin Ehichoya</Authors>
+		<Company>Clearwox Systems</Company>
+		<Copyright>Copyright 2025</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 
-	  <PackageProjectUrl>https://github.com/ehgodson/ClearFeatureActions</PackageProjectUrl>
-	  <License>https://github.com/ehgodson/ClearFeatureActions?tab=MIT-1-ov-file</License>
-	  <RepositoryUrl>https://github.com/ehgodson/ClearFeatureActions</RepositoryUrl>
-  </PropertyGroup>
+		<PackageProjectUrl>https://github.com/ehgodson/ClearFeatureActions</PackageProjectUrl>
+		<License>https://github.com/ehgodson/ClearFeatureActions?tab=MIT-1-ov-file</License>
+		<RepositoryUrl>https://github.com/ehgodson/ClearFeatureActions</RepositoryUrl>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="FluentResults" Version="3.16.0" />
-    <PackageReference Include="FluentValidation" Version="11.11.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.3" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="FluentResults" Version="3.16.0" />
+		<PackageReference Include="FluentValidation" Version="11.11.0" />
+		<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.3" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  	<None Update="CHANGELOG.md">
-  		<PackagePath>\</PackagePath>
-  		<Pack>True</Pack>
-  	</None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="CHANGELOG.md">
+			<PackagePath>\</PackagePath>
+			<Pack>True</Pack>
+		</None>
+	</ItemGroup>
 
 </Project>
