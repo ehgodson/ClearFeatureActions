@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0] - 2025-01-16
+### Changed
+- Updated version to 1.2.0
+- Package metadata improvements
+### Added
+- `AddNotificationPublishers` extension method for registering notification publishers and handlers
+- Support for concurrent and sequential notification handler execution
+- Enhanced notification publishing with configurable execution modes
+
 ## [1.1.0] - 2025-04-25
 ### Added
 - INotification

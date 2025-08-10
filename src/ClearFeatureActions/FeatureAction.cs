@@ -4,13 +4,17 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Clear
+namespace Clear.FeatureActions
 {
     public interface IRequest<TResponse>
     {
     }
 
     public interface IRequest : IRequest<bool>
+    { }
+
+    public interface IRequestHandler<TRequest> : IRequestHandler<TRequest, bool>
+        where TRequest : IRequest
     { }
 
     public interface IRequestHandler<TRequest, TResponse>
@@ -48,7 +52,7 @@ namespace Clear
         Task<Result<TResponse>> Execute(TRequest command, CancellationToken cancellationToken);
     }
 
-    public abstract class BaseFeatureAction<TRequest, TResponse> : IFeatureAction<TRequest, TResponse>
+    public abstract class BaseFeatureAction<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
         private readonly IRequestHandler<TRequest, TResponse> _handler;
@@ -88,11 +92,22 @@ namespace Clear
         }
     }
 
-    internal class FeatureAction<TRequest, TResponse> : BaseFeatureAction<TRequest, TResponse>
+    internal class FeatureAction<TRequest, TResponse> : BaseFeatureAction<TRequest, TResponse>, IFeatureAction<TRequest, TResponse>
         where TRequest : IRequest<TResponse>
     {
         public FeatureAction(
             IRequestHandler<TRequest, TResponse> handler,
+            IValidator<TRequest> validator = null)
+            : base(handler, validator)
+        {
+        }
+    }
+
+    internal class FeatureAction<TRequest> : BaseFeatureAction<TRequest, bool>, IFeatureAction<TRequest>
+        where TRequest : IRequest
+    {
+        public FeatureAction(
+            IRequestHandler<TRequest> handler,
             IValidator<TRequest> validator = null)
             : base(handler, validator)
         {
