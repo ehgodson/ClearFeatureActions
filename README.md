@@ -20,7 +20,7 @@ This approach guarantees that the workflow is robust and efficient. The project 
 To install ClearFeatureActions, add the following package references to your project file:
 
 ```xml
-<PackageReference Include="ClearFeatureActions" Version="1.2.0" />
+<PackageReference Include="ClearFeatureActions" Version="1.3.0" />
 ```
 
 ## Usage
