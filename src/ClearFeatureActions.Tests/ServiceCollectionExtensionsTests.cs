@@ -45,31 +45,35 @@ public class TestNotification : INotification
     public string Message { get; set; } = string.Empty;
 }
 
-public class TestNotificationHandler1 : INotificationHandler<TestNotification>
+// Use a dedicated payload for assembly-scanning tests. Publisher tests create
+// dynamic mocks for TestNotification, which are visible to the all-assembly scan.
+public class RegistrationNotification : INotification { }
+
+public class TestNotificationHandler1 : INotificationHandler<RegistrationNotification>
 {
     public bool SupportsConcurrentExecution => true;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public Task Handle(RegistrationNotification notification, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 }
 
-public class TestNotificationHandler2 : INotificationHandler<TestNotification>
+public class TestNotificationHandler2 : INotificationHandler<RegistrationNotification>
 {
     public bool SupportsConcurrentExecution => true;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public Task Handle(RegistrationNotification notification, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 }
 
-public class TestNotificationHandler3 : INotificationHandler<TestNotification>
+public class TestNotificationHandler3 : INotificationHandler<RegistrationNotification>
 {
     public bool SupportsConcurrentExecution => false;
 
-    public Task Handle(TestNotification notification, CancellationToken cancellationToken = default)
+    public Task Handle(RegistrationNotification notification, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
@@ -91,11 +95,11 @@ public class ServiceCollectionExtensionsTests
         // Assert
         var serviceProvider = services.BuildServiceProvider();
 
-        Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
-        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationHandler<RegistrationNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<RegistrationNotification>>());
 
-        // Assert that there are exactly 3 implementations of INotificationHandler<TestNotification>
-        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
+        // Assert that all three fixture handlers were registered.
+        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<RegistrationNotification>>();
         Assert.Equal(3, notificationHandlers.Count());
     }
 
@@ -104,6 +108,8 @@ public class ServiceCollectionExtensionsTests
     {
         // Arrange
         var services = new ServiceCollection();
+        // Reproduce the loaded proxy that other publisher tests can leave behind.
+        _ = new Moq.Mock<INotificationHandler<TestNotification>>().Object;
 
         // Act
         services.AddNotificationPublishers();
@@ -111,11 +117,11 @@ public class ServiceCollectionExtensionsTests
         // Assert
         var serviceProvider = services.BuildServiceProvider();
 
-        Assert.NotNull(serviceProvider.GetService<INotificationHandler<TestNotification>>());
-        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<TestNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationHandler<RegistrationNotification>>());
+        Assert.NotNull(serviceProvider.GetService<INotificationPublisher<RegistrationNotification>>());
 
-        // Assert that there are exactly 3 implementations of INotificationHandler<TestNotification>
-        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
+        // Assert that all three fixture handlers were registered.
+        var notificationHandlers = serviceProvider.GetServices<INotificationHandler<RegistrationNotification>>();
         Assert.Equal(3, notificationHandlers.Count());
     }
 }
