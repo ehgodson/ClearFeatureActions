@@ -1,5 +1,7 @@
 # ClearFeatureActions
 
+[Publishing to NuGet](RELEASING.md)
+
 ## Description
 ClearFeatureActions is a robust framework designed to encapsulate a request and its process flow within a feature. Each action serves as a subset of a specific feature, consisting of three main components: a request, a handler, and a validator. The feature action coordinates these components to ensure seamless functionality.
 

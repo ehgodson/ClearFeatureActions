@@ -1,0 +1,43 @@
+name: Validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        id: dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Select installed SDK
+        env:
+          DOTNET_SDK_VERSION: ${{ steps.dotnet.outputs.dotnet-version }}
+        run: |
+          dotnet new globaljson --sdk-version "$DOTNET_SDK_VERSION" --roll-forward disable
+          dotnet --version
+
+      - name: Restore
+        run: dotnet restore src/ClearFeatureActions.sln --source https://api.nuget.org/v3/index.json
+
+      - name: Build (Release)
+        run: dotnet build src/ClearFeatureActions.sln -c Release --no-restore -p:GeneratePackageOnBuild=false
+
+      - name: Test
+        run: dotnet test src/ClearFeatureActions.sln -c Release --no-build --no-restore
+
+      - name: Pack ClearFeatureActions
+        run: dotnet pack src/ClearFeatureActions/ClearFeatureActions.csproj -c Release --no-build -o ./artifacts
