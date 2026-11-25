@@ -17,46 +17,35 @@ public class NotificationPublisherTests
     [Fact]
     public async Task Publish_WithConcurrentHandlers_ExecutesInParallel()
     {
-        // Arrange
         var notification = new TestNotification { Message = "Test" };
-        var executionOrder = new List<string>();
+        var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = 0;
+        var handlers = Enumerable.Range(0, 2).Select(_ =>
+        {
+            var handler = new Mock<INotificationHandler<TestNotification>>();
+            handler.Setup(h => h.SupportsConcurrentExecution).Returns(true);
+            handler.Setup(h => h.Handle(It.IsAny<TestNotification>(), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    if (Interlocked.Increment(ref started) == 2)
+                        bothStarted.TrySetResult();
+                    return release.Task;
+                });
+            return handler.Object;
+        }).ToArray();
 
-        var handler1 = new Mock<INotificationHandler<TestNotification>>();
-        var handler2 = new Mock<INotificationHandler<TestNotification>>();
-
-        handler1.Setup(h => h.SupportsConcurrentExecution).Returns(true);
-        handler2.Setup(h => h.SupportsConcurrentExecution).Returns(true);
-
-        handler1.Setup(h => h.Handle(It.IsAny<TestNotification>(), It.IsAny<CancellationToken>()))
-            .Returns(async () =>
-            {
-                await Task.Delay(50); // Simulate work
-                lock (executionOrder) { executionOrder.Add("Handler1"); }
-            });
-
-        handler2.Setup(h => h.Handle(It.IsAny<TestNotification>(), It.IsAny<CancellationToken>()))
-            .Returns(async () =>
-            {
-                await Task.Delay(50); // Simulate work
-                lock (executionOrder) { executionOrder.Add("Handler2"); }
-            });
-
-        var handlers = new[] { handler1.Object, handler2.Object };
         var publisher = new NotificationPublisher<TestNotification>(handlers);
-
-        // Act
-        var startTime = DateTime.UtcNow;
-        await publisher.Publish(notification, CancellationToken.None);
-        var endTime = DateTime.UtcNow;
-
-        // Assert
-        Assert.Equal(2, executionOrder.Count);
-        // Both handlers should complete in roughly the same time if running concurrently
-        // Since each handler takes 50ms and they run concurrently, total should be around 50ms, not 100ms
-        Assert.True((endTime - startTime).TotalMilliseconds < 80, "Handlers should execute concurrently");
-        
-        handler1.Verify(h => h.Handle(notification, It.IsAny<CancellationToken>()), Times.Once);
-        handler2.Verify(h => h.Handle(notification, It.IsAny<CancellationToken>()), Times.Once);
+        var publication = publisher.Publish(notification, CancellationToken.None);
+        try
+        {
+            await bothStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            release.TrySetResult();
+            await publication;
+        }
     }
 
     [Fact]
